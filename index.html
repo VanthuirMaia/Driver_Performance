@@ -530,9 +530,6 @@
         <button class="tab-btn" data-tab="monthly">
           <span class="ico">📈</span> Evolução
         </button>
-        <button class="tab-btn" data-tab="financial">
-          <span class="ico">💰</span> Financeiro
-        </button>
         <button class="tab-btn" data-tab="insights">
           <span class="ico">💡</span> Recomendações
         </button>
@@ -544,12 +541,9 @@
       <div id="panel-weekdays" class="tab-panel"></div>
       <div id="panel-heatmap" class="tab-panel"></div>
       <div id="panel-monthly" class="tab-panel"></div>
-      <div id="panel-monthly" class="tab-panel"></div>
-      <div id="panel-financial" class="tab-panel"></div>
       <div id="panel-insights" class="tab-panel"></div>
     </div>
     <script>
-
       const RAW_DATA = [
         {
           id: 22101424785960,
@@ -11583,11 +11577,8 @@
         },
       ];
 
-      const USER_METRICS = {
-        costPerKm: 0.65,
-        avgConsumption: 10.75,
-      };
-
+      let filteredData = [],
+        allData = [];
       const WPT = {
         0: "Domingo",
         1: "Segunda",
@@ -11622,106 +11613,54 @@
         "Dez",
       ];
       const CI = {};
-      var currentTab = "overview";
-      var heatMetric = "corridas";
+      let heatMetric = "corridas";
 
-
-
-
-
-      document.addEventListener("DOMContentLoaded", init);
-
-      function init() {
-        try {
-        // Enforce data types & add calculated fields
-        RAW_DATA.forEach(function (d) {
-          d.fee = +d.fee;
-          d.duration = +d.duration;
-          d.distance = +d.distance;
-          d.estimated_cost = d.distance * USER_METRICS.costPerKm;
-          d.net_income = d.fee - d.estimated_cost;
-        });
-
-        // Set date inputs
-        // Set date inputs safely
-        var timestamps = RAW_DATA.map(function (d) {
-          return new Date(d.call_time).getTime();
-        }).filter(function (t) {
-          return !isNaN(t);
-        });
-
-        if (timestamps.length > 0) {
-          var minTs = timestamps.reduce(function (a, b) {
-            return Math.min(a, b);
-          });
-          var maxTs = timestamps.reduce(function (a, b) {
-            return Math.max(a, b);
-          });
-          var minDate = new Date(minTs);
-          var maxDate = new Date(maxTs);
-
-          document.getElementById("filter-start").value = minDate
-            .toISOString()
-            .split("T")[0];
-          document.getElementById("filter-end").value = maxDate
-            .toISOString()
-            .split("T")[0];
-          document.getElementById("header-subtitle").innerText =
-            "Dados de " +
-            frmtD(minDate) +
-            " até " +
-            frmtD(maxDate) +
-            " • " +
-            RAW_DATA.length +
-            " corridas";
-        } else {
-          document.getElementById("header-subtitle").innerText =
-            "Sem dados válidos de data.";
-        }
-
-        // Tab switching
-        document.querySelectorAll(".tab-btn").forEach(function (btn) {
-          btn.addEventListener("click", function () {
+      document.addEventListener("DOMContentLoaded", () => {
+        allData = RAW_DATA.map((r) => ({ ...r, date: new Date(r.call_time) }));
+        const ds = allData
+          .map((d) => d.call_time?.slice(0, 10))
+          .filter(Boolean)
+          .sort();
+        document.getElementById("filter-start").value = ds[0];
+        document.getElementById("filter-end").value = ds[ds.length - 1];
+        filteredData = [...allData];
+        renderAll();
+        setupTabs();
+      });
+      function setupTabs() {
+        document.querySelectorAll(".tab-btn").forEach((b) => {
+          b.addEventListener("click", () => {
             document
               .querySelectorAll(".tab-btn")
-              .forEach(function (b) {
-                b.classList.remove("active");
-              });
+              .forEach((x) => x.classList.remove("active"));
             document
               .querySelectorAll(".tab-panel")
-              .forEach(function (p) {
-                p.classList.remove("active");
-              });
-            this.classList.add("active");
-            var t = this.getAttribute("data-tab");
-            document.getElementById("panel-" + t).classList.add("active");
-            currentTab = t;
+              .forEach((x) => x.classList.remove("active"));
+            b.classList.add("active");
+            document
+              .getElementById("panel-" + b.dataset.tab)
+              .classList.add("active");
             renderAll();
           });
         });
-
-        renderAll();
-        } catch (e) {
-          alert("Erro ao carregar dashboard: " + e.message);
-          console.error(e);
-        }
       }
-
       function applyFilters() {
+        const s = document.getElementById("filter-start").value,
+          e = document.getElementById("filter-end").value;
+        filteredData = allData.filter((d) => {
+          const x = d.call_time?.slice(0, 10);
+          return x && (!s || x >= s) && (!e || x <= e);
+        });
         renderAll();
       }
       function resetFilters() {
-        const dates = RAW_DATA.map(function (d) {
-          return new Date(d.call_time);
-        });
-        const minDate = new Date(Math.min.apply(null, dates));
-        const maxDate = new Date(Math.max.apply(null, dates));
-        document.getElementById("filter-start").value = minDate
-          .toISOString()
-          .split("T")[0];
-        document.getElementById("filter-end").value = maxDate
-          .toISOString()
-          .split("T")[0];
+        const ds = allData
+          .map((d) => d.call_time?.slice(0, 10))
+          .filter(Boolean)
+          .sort();
+        document.getElementById("filter-start").value = ds[0];
+        document.getElementById("filter-end").value = ds[ds.length - 1];
+        filteredData = [...allData];
         renderAll();
       }
       function fmt(n, d = 2) {
@@ -11729,9 +11668,6 @@
       }
       function fmtR(n) {
         return "R$" + fmt(n, 2);
-      }
-      function frmtD(date) {
-        return date.toLocaleDateString("pt-BR");
       }
       function dc(id) {
         if (CI[id]) {
@@ -11833,7 +11769,6 @@
         rWd(fin);
         rHm(fin);
         rMo(fin);
-        rFin(fin);
         rIn(fin, total, canc);
       }
 
@@ -12905,83 +12840,6 @@
         htm +=
           '<div class="action-step"><span class="step-num">6.</span> <strong>Monitorar:</strong> Use filtros semanalmente</div></div>';
         el.innerHTML = htm;
-        el.innerHTML = htm;
-      }
-
-      function rFin(fin) {
-        var el = document.getElementById("panel-financial");
-        if(!el) return;
-        var totalRevenue = fin.reduce((s, d) => s + d.fee, 0);
-        var totalCost = fin.reduce((s, d) => s + (d.estimated_cost || 0), 0);
-        var netIncome = totalRevenue - totalCost;
-        var totalDist = fin.reduce((s, d) => s + d.distance, 0);
-        var margin = totalRevenue ? (netIncome / totalRevenue) * 100 : 0;
-        var totalDurationHours =
-          fin.reduce((s, d) => s + d.duration, 0) / 3600;
-        var realHourlyRate = totalDurationHours
-          ? netIncome / totalDurationHours
-          : 0;
-        var fuelLitres = totalDist / (USER_METRICS.avgConsumption || 10);
-
-        el.innerHTML = `
-          <div class="section-title"><h2>Balanço Financeiro Estimado</h2><p>Baseado no custo de R$ ${USER_METRICS.costPerKm}/km</p></div>
-          <div class="kpi-grid">
-              <div class="kpi-card" style="border-left:3px solid var(--green)">
-                  <div class="kpi-label">Lucro Líquido</div>
-                  <div class="kpi-value" style="color:var(--green)">${fmtR(netIncome)}</div>
-                  <div class="kpi-sub">${fmt(margin, 1)}% de margem</div>
-              </div>
-              <div class="kpi-card" style="border-left:3px solid var(--red)">
-                  <div class="kpi-label">Custo Total</div>
-                  <div class="kpi-value" style="color:var(--red)">${fmtR(totalCost)}</div>
-                  <div class="kpi-sub">Combustível + Manutenção</div>
-              </div>
-              <div class="kpi-card" style="border-left:3px solid var(--accent)">
-                  <div class="kpi-label">Ganho Real/Hora</div>
-                  <div class="kpi-value">${fmtR(realHourlyRate)}</div>
-                  <div class="kpi-sub">Líquido por hora online</div>
-              </div>
-               <div class="kpi-card" style="border-left:3px solid var(--blue)">
-                  <div class="kpi-label">Combustível</div>
-                  <div class="kpi-value">${fmt(fuelLitres, 1)} L</div>
-                  <div class="kpi-sub">Consumo estimado</div>
-              </div>
-          </div>
-          <div class="section-title"><h2>Receita Bruta vs Custos</h2></div>
-          <div class="chart-card">
-              <canvas id="c-fin-stack" height="100"></canvas>
-          </div>
-        `;
-
-        mc("c-fin-stack", {
-          type: "bar",
-          data: {
-            labels: ["Financeiro"],
-            datasets: [
-              {
-                label: "Lucro Líquido",
-                data: [netIncome],
-                backgroundColor: "rgba(16, 185, 129, 0.7)",
-              },
-              {
-                label: "Custos Operacionais",
-                data: [totalCost],
-                backgroundColor: "rgba(239, 68, 68, 0.7)",
-              },
-            ],
-          },
-          options: {
-            indexAxis: "y",
-            responsive: true,
-            scales: {
-              x: { stacked: true, ticks: { color: "#94a3b8" } },
-              y: { stacked: true, display: false },
-            },
-            plugins: {
-              legend: { labels: { color: "#94a3b8" } },
-            },
-          },
-        });
       }
     </script>
   </body>
