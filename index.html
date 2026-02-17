@@ -530,6 +530,9 @@
         <button class="tab-btn" data-tab="monthly">
           <span class="ico">📈</span> Evolução
         </button>
+        <button class="tab-btn" data-tab="financial">
+          <span class="ico">💰</span> Financeiro
+        </button>
         <button class="tab-btn" data-tab="insights">
           <span class="ico">💡</span> Recomendações
         </button>
@@ -541,9 +544,15 @@
       <div id="panel-weekdays" class="tab-panel"></div>
       <div id="panel-heatmap" class="tab-panel"></div>
       <div id="panel-monthly" class="tab-panel"></div>
+      <div id="panel-monthly" class="tab-panel"></div>
+      <div id="panel-financial" class="tab-panel"></div>
       <div id="panel-insights" class="tab-panel"></div>
     </div>
     <script>
+      const USER_METRICS = {
+        costPerKm: 0.65,
+        avgConsumption: 10.75,
+      };
       const RAW_DATA = [
         {
           id: 22101424785960,
@@ -11613,54 +11622,86 @@
         "Dez",
       ];
       const CI = {};
-      let heatMetric = "corridas";
+      var currentTab = "overview";
+      var heatMetric = "corridas";
 
-      document.addEventListener("DOMContentLoaded", () => {
-        allData = RAW_DATA.map((r) => ({ ...r, date: new Date(r.call_time) }));
-        const ds = allData
-          .map((d) => d.call_time?.slice(0, 10))
-          .filter(Boolean)
-          .sort();
-        document.getElementById("filter-start").value = ds[0];
-        document.getElementById("filter-end").value = ds[ds.length - 1];
-        filteredData = [...allData];
-        renderAll();
-        setupTabs();
-      });
-      function setupTabs() {
-        document.querySelectorAll(".tab-btn").forEach((b) => {
-          b.addEventListener("click", () => {
+      const USER_METRICS = {
+        costPerKm: 1.2, // Custo por KM (combustível, manutenção, etc.)
+        avgConsumption: 10, // Consumo médio do veículo em KM/L
+      };
+
+      document.addEventListener("DOMContentLoaded", init);
+
+      function init() {
+        // Enforce data types & add calculated fields
+        RAW_DATA.forEach(function (d) {
+          d.fee = +d.fee;
+          d.duration = +d.duration;
+          d.distance = +d.distance;
+          d.estimated_cost = d.distance * USER_METRICS.costPerKm;
+          d.net_income = d.fee - d.estimated_cost;
+        });
+
+        // Set date inputs
+        var dates = RAW_DATA.map(function (d) {
+          return new Date(d.call_time);
+        });
+        var minDate = new Date(Math.min.apply(null, dates));
+        var maxDate = new Date(Math.max.apply(null, dates));
+        document.getElementById("filter-start").value = minDate
+          .toISOString()
+          .split("T")[0];
+        document.getElementById("filter-end").value = maxDate
+          .toISOString()
+          .split("T")[0];
+        document.getElementById("header-subtitle").innerText =
+          "Dados de " +
+          frmtD(minDate) +
+          " até " +
+          frmtD(maxDate) +
+          " • " +
+          RAW_DATA.length +
+          " corridas";
+
+        // Tab switching
+        document.querySelectorAll(".tab-btn").forEach(function (btn) {
+          btn.addEventListener("click", function () {
             document
               .querySelectorAll(".tab-btn")
-              .forEach((x) => x.classList.remove("active"));
+              .forEach(function (b) {
+                b.classList.remove("active");
+              });
             document
               .querySelectorAll(".tab-panel")
-              .forEach((x) => x.classList.remove("active"));
-            b.classList.add("active");
-            document
-              .getElementById("panel-" + b.dataset.tab)
-              .classList.add("active");
+              .forEach(function (p) {
+                p.classList.remove("active");
+              });
+            this.classList.add("active");
+            var t = this.getAttribute("data-tab");
+            document.getElementById("panel-" + t).classList.add("active");
+            currentTab = t;
             renderAll();
           });
         });
+
+        renderAll();
       }
+
       function applyFilters() {
-        const s = document.getElementById("filter-start").value,
-          e = document.getElementById("filter-end").value;
-        filteredData = allData.filter((d) => {
-          const x = d.call_time?.slice(0, 10);
-          return x && (!s || x >= s) && (!e || x <= e);
-        });
         renderAll();
       }
       function resetFilters() {
-        const ds = allData
-          .map((d) => d.call_time?.slice(0, 10))
-          .filter(Boolean)
-          .sort();
-        document.getElementById("filter-start").value = ds[0];
-        document.getElementById("filter-end").value = ds[ds.length - 1];
-        filteredData = [...allData];
+        const dates = RAW_DATA.map(function (d) {
+          return new Date(d.call_time);
+        });
+        const minDate = new Date(Math.min.apply(null, dates));
+        const maxDate = new Date(Math.max.apply(null, dates));
+        document.getElementById("filter-start").value = minDate
+          .toISOString()
+          .split("T")[0];
+        document.getElementById("filter-end").value = maxDate
+          .toISOString()
+          .split("T")[0];
         renderAll();
       }
       function fmt(n, d = 2) {

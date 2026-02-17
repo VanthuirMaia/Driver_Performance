@@ -21,6 +21,10 @@ O dashboard processa os dados brutos e gera diversas visualizações métricas:
     *   Visualize os horários mais quentes (maior volume ou maior ticket) cruzando Dias da Semana x Horas do Dia.
 *   **📈 Evolução Mensal:**
     *   Acompanhe o crescimento da receita, ticket médio e volume de corridas mês a mês.
+*   **💰 Financeiro (Novo):**
+    *   **Lucro Líquido Estimado**: Receita descontando custos operacionais.
+    *   **Margem de Lucro**: Porcentagem de ganho real sobre o bruto.
+    *   **Custos**: Estimativa de gastos com combustível e manutenção baseada na KM rodada.
 *   **💡 Insights Inteligentes:**
     *   Recomendações automáticas sobre "Horários de Ouro", comparação de eficiência e alertas sobre tendências de queda.
 *   **🔎 Filtros Interativos:**
@@ -59,8 +63,20 @@ Cada objeto de corrida possui a seguinte estrutura:
   "duration": 383,               // Duração em segundos
   "distance": 1.87,              // Distância em KM
   "payment": "Paid via Credit Card", // Método de pagamento
-  "fee": 9.5                     // Valor recebido (R$)
+  "fee": 9.5,                    // Valor recebido (R$)
+  "estimated_cost": 1.21,        // (Calculado Automaticamente)
+  "net_income": 8.29             // (Calculado Automaticamente)
 }
+```
+
+### Configuração de Custos
+No início do código JavaScript (dentro de `index.html`), você pode ajustar os custos do seu veículo:
+
+```javascript
+const USER_METRICS = {
+  costPerKm: 0.65,        // Custo total por KM (Combustível + Manutenção + Depreciação)
+  avgConsumption: 10.75   // Consumo médio (KM/L) para estimativa de litros
+};
 ```
 
 ### Atualizando os Dados
