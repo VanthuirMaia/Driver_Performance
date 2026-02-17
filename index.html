@@ -11632,6 +11632,7 @@
       document.addEventListener("DOMContentLoaded", init);
 
       function init() {
+        try {
         // Enforce data types & add calculated fields
         RAW_DATA.forEach(function (d) {
           d.fee = +d.fee;
@@ -11700,6 +11701,10 @@
         });
 
         renderAll();
+        } catch (e) {
+          alert("Erro ao carregar dashboard: " + e.message);
+          console.error(e);
+        }
       }
 
       function applyFilters() {
@@ -11825,6 +11830,7 @@
         rWd(fin);
         rHm(fin);
         rMo(fin);
+        rFin(fin);
         rIn(fin, total, canc);
       }
 
@@ -12896,6 +12902,83 @@
         htm +=
           '<div class="action-step"><span class="step-num">6.</span> <strong>Monitorar:</strong> Use filtros semanalmente</div></div>';
         el.innerHTML = htm;
+        el.innerHTML = htm;
+      }
+
+      function rFin(fin) {
+        var el = document.getElementById("panel-financial");
+        if(!el) return;
+        var totalRevenue = fin.reduce((s, d) => s + d.fee, 0);
+        var totalCost = fin.reduce((s, d) => s + (d.estimated_cost || 0), 0);
+        var netIncome = totalRevenue - totalCost;
+        var totalDist = fin.reduce((s, d) => s + d.distance, 0);
+        var margin = totalRevenue ? (netIncome / totalRevenue) * 100 : 0;
+        var totalDurationHours =
+          fin.reduce((s, d) => s + d.duration, 0) / 3600;
+        var realHourlyRate = totalDurationHours
+          ? netIncome / totalDurationHours
+          : 0;
+        var fuelLitres = totalDist / (USER_METRICS.avgConsumption || 10);
+
+        el.innerHTML = `
+          <div class="section-title"><h2>Balanço Financeiro Estimado</h2><p>Baseado no custo de R$ ${USER_METRICS.costPerKm}/km</p></div>
+          <div class="kpi-grid">
+              <div class="kpi-card" style="border-left:3px solid var(--green)">
+                  <div class="kpi-label">Lucro Líquido</div>
+                  <div class="kpi-value" style="color:var(--green)">${fmtR(netIncome)}</div>
+                  <div class="kpi-sub">${fmt(margin, 1)}% de margem</div>
+              </div>
+              <div class="kpi-card" style="border-left:3px solid var(--red)">
+                  <div class="kpi-label">Custo Total</div>
+                  <div class="kpi-value" style="color:var(--red)">${fmtR(totalCost)}</div>
+                  <div class="kpi-sub">Combustível + Manutenção</div>
+              </div>
+              <div class="kpi-card" style="border-left:3px solid var(--accent)">
+                  <div class="kpi-label">Ganho Real/Hora</div>
+                  <div class="kpi-value">${fmtR(realHourlyRate)}</div>
+                  <div class="kpi-sub">Líquido por hora online</div>
+              </div>
+               <div class="kpi-card" style="border-left:3px solid var(--blue)">
+                  <div class="kpi-label">Combustível</div>
+                  <div class="kpi-value">${fmt(fuelLitres, 1)} L</div>
+                  <div class="kpi-sub">Consumo estimado</div>
+              </div>
+          </div>
+          <div class="section-title"><h2>Receita Bruta vs Custos</h2></div>
+          <div class="chart-card">
+              <canvas id="c-fin-stack" height="100"></canvas>
+          </div>
+        `;
+
+        mc("c-fin-stack", {
+          type: "bar",
+          data: {
+            labels: ["Financeiro"],
+            datasets: [
+              {
+                label: "Lucro Líquido",
+                data: [netIncome],
+                backgroundColor: "rgba(16, 185, 129, 0.7)",
+              },
+              {
+                label: "Custos Operacionais",
+                data: [totalCost],
+                backgroundColor: "rgba(239, 68, 68, 0.7)",
+              },
+            ],
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            scales: {
+              x: { stacked: true, ticks: { color: "#94a3b8" } },
+              y: { stacked: true, display: false },
+            },
+            plugins: {
+              legend: { labels: { color: "#94a3b8" } },
+            },
+          },
+        });
       }
     </script>
   </body>
