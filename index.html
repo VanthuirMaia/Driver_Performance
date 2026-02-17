@@ -11730,6 +11730,9 @@
       function fmtR(n) {
         return "R$" + fmt(n, 2);
       }
+      function frmtD(date) {
+        return date.toLocaleDateString("pt-BR");
+      }
       function dc(id) {
         if (CI[id]) {
           CI[id].destroy();
