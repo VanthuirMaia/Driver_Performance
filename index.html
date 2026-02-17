@@ -11625,10 +11625,7 @@
       var currentTab = "overview";
       var heatMetric = "corridas";
 
-      const USER_METRICS = {
-        costPerKm: 1.2, // Custo por KM (combustível, manutenção, etc.)
-        avgConsumption: 10, // Consumo médio do veículo em KM/L
-      };
+
 
       document.addEventListener("DOMContentLoaded", init);
 
@@ -11643,25 +11640,41 @@
         });
 
         // Set date inputs
-        var dates = RAW_DATA.map(function (d) {
-          return new Date(d.call_time);
+        // Set date inputs safely
+        var timestamps = RAW_DATA.map(function (d) {
+          return new Date(d.call_time).getTime();
+        }).filter(function (t) {
+          return !isNaN(t);
         });
-        var minDate = new Date(Math.min.apply(null, dates));
-        var maxDate = new Date(Math.max.apply(null, dates));
-        document.getElementById("filter-start").value = minDate
-          .toISOString()
-          .split("T")[0];
-        document.getElementById("filter-end").value = maxDate
-          .toISOString()
-          .split("T")[0];
-        document.getElementById("header-subtitle").innerText =
-          "Dados de " +
-          frmtD(minDate) +
-          " até " +
-          frmtD(maxDate) +
-          " • " +
-          RAW_DATA.length +
-          " corridas";
+
+        if (timestamps.length > 0) {
+          var minTs = timestamps.reduce(function (a, b) {
+            return Math.min(a, b);
+          });
+          var maxTs = timestamps.reduce(function (a, b) {
+            return Math.max(a, b);
+          });
+          var minDate = new Date(minTs);
+          var maxDate = new Date(maxTs);
+
+          document.getElementById("filter-start").value = minDate
+            .toISOString()
+            .split("T")[0];
+          document.getElementById("filter-end").value = maxDate
+            .toISOString()
+            .split("T")[0];
+          document.getElementById("header-subtitle").innerText =
+            "Dados de " +
+            frmtD(minDate) +
+            " até " +
+            frmtD(maxDate) +
+            " • " +
+            RAW_DATA.length +
+            " corridas";
+        } else {
+          document.getElementById("header-subtitle").innerText =
+            "Sem dados válidos de data.";
+        }
 
         // Tab switching
         document.querySelectorAll(".tab-btn").forEach(function (btn) {
