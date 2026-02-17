@@ -549,10 +549,7 @@
       <div id="panel-insights" class="tab-panel"></div>
     </div>
     <script>
-      const USER_METRICS = {
-        costPerKm: 0.65,
-        avgConsumption: 10.75,
-      };
+
       const RAW_DATA = [
         {
           id: 22101424785960,
@@ -11586,8 +11583,11 @@
         },
       ];
 
-      let filteredData = [],
-        allData = [];
+      const USER_METRICS = {
+        costPerKm: 0.65,
+        avgConsumption: 10.75,
+      };
+
       const WPT = {
         0: "Domingo",
         1: "Segunda",
@@ -11624,6 +11624,8 @@
       const CI = {};
       var currentTab = "overview";
       var heatMetric = "corridas";
+
+
 
 
 
